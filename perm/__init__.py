@@ -16,9 +16,9 @@ class Permission(object):
         return '{}.{}.{}'.format(self.__module__, self.__class__.__name__, self.name)
 
 
-class Variable(object):
+class Variable(set):
     def grant(self, *permissions):
-        pass
+        self.update(permissions)
 
 
 class RoleMeta(type):
@@ -35,6 +35,19 @@ class RoleMeta(type):
 class Role(object):
     __metaclass__ = RoleMeta
 
+    def __init__(self, variables):
+        for var in self._perm_variables:
+            assert var in variables, 'Variable {} not defined'.format(var)
+            setattr(self, var, variables[var])
+
+    def has_perm(self, permission, subject=None):
+        for name, var in self._perm_variables.items():
+            if permission in var:
+                test_sub = getattr(self, name)
+                if test_sub is None or subject == test_sub:
+                    return True
+        return False
+
 
 class SubjectMeta(type):
     def __new__(cls, name, bases, dct):
@@ -47,8 +60,6 @@ class SubjectMeta(type):
 
 class Subject(object):
     __metaclass__ = SubjectMeta
-
-
 
 
 class UserBase(object):
@@ -64,6 +75,12 @@ class UserBase(object):
         for test_perm, test_sub in self.get('perm', []):
             if test_perm == permission and (test_sub == subject or test_sub is None):
                 return True
+
+        print 'check roles', self.get('roles')
+        for role, variables in self.get('roles', []):
+            if role(variables).has_perm(permission, subject):
+                return True
+
         return False
 
     def require_perm(self, permission, subject=None):
@@ -100,9 +117,8 @@ class UserBase(object):
         for key in role._perm_variables:
             if key not in variables:
                 raise MissingVariable(key)
-        if not [role, variables] in self.get('perm', []):
-            self.setdefault('perm', [])
-            self['perm'].append([role, variables])
+        if not [role, variables] in self['roles']:
+            self['roles'].append([role, variables])
 
 
 class User(UserBase, dict):

@@ -16,3 +16,6 @@ class ProjectAdmin(perm.Role):
         Project.read
     )
 
+
+class Useless(perm.Role):
+    pass

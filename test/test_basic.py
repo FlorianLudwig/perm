@@ -56,7 +56,7 @@ def test_double_perms():
     assert len(user.get('perm', [])) == 2
 
 
-def test_role():
+def test_add_role():
     user = perm.User()
 
     # variable 'project' must be defined
@@ -64,3 +64,15 @@ def test_role():
         user.add_role(example.ProjectAdmin)
 
     user.add_role(example.ProjectAdmin, project=1)
+
+
+def test_role_permissions():
+    user = perm.User()
+    assert not user.has_perm(example.Project.read, 1)
+
+    user.add_role(example.Useless)
+    assert not user.has_perm(example.Project.read, 1)
+
+    user.add_role(example.ProjectAdmin, project=1)
+    assert user.has_perm(example.Project.read, 1)
+    assert not user.has_perm(example.Project.read, 2)
