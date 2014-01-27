@@ -23,11 +23,12 @@ class Variable(object):
 
 class RoleMeta(type):
     def __new__(cls, name, bases, dct):
-        dct['__variables'] = {}
+        variables = '_perm_variables'
+        dct[variables] = {}
         # collect names for permissions
         for key, value in dct.iteritems():
             if isinstance(value, Variable):
-                dct['__variables'][key] = value
+                dct[variables][key] = value
         return type.__new__(cls, name, bases, dct)
 
 
@@ -96,10 +97,11 @@ class UserBase(object):
     def add_role(self, role, **variables):
         self.setdefault('roles', [])
         # check if all needed variabes are passed
-        for key in role.__variables:
+        for key in role._perm_variables:
             if key not in variables:
                 raise MissingVariable(key)
-        if not [role, variables] in self['perm']:
+        if not [role, variables] in self.get('perm', []):
+            self.setdefault('perm', [])
             self['perm'].append([role, variables])
 
 

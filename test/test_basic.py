@@ -59,7 +59,7 @@ def test_double_perms():
 def test_role():
     user = perm.User()
 
-    # project must be defined
+    # variable 'project' must be defined
     with pytest.raises(perm.MissingVariable):
         user.add_role(example.ProjectAdmin)
 
