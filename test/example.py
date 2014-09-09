@@ -1,21 +1,15 @@
 import perm
 
-
-class Project(perm.Subject):
-    read = perm.Permission()
-    write = perm.Permission()
-
-
-class ProjectAdmin(perm.Role):
-    project = perm.Variable()
-    project.grant(
-        Project.read, Project.write
-    )
-
-    perm.grant(
-        Project.read
-    )
+Project = perm.Subject()
+Project.read = perm.Permission()
+Project.write = perm.Permission()
 
 
-class Useless(perm.Role):
-    pass
+# a project admin might read and write the project
+# he is admin of and read every project
+ProjectAdmin = perm.Role()
+ProjectAdmin.add_variable('project', Project.read, Project.write)
+ProjectAdmin.grant(Project.read)
+
+
+Useless = perm.Role()

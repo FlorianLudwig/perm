@@ -1,10 +1,24 @@
 class PermissionDenied(Exception):
     def __init__(self, permission, subject):
-        super(PermissionDenied, self).__init__('Permission {} for {} not granted'.format(permission, subject))
+        msg = 'Permission {} for {} not granted'.format(permission, subject)
+        super(PermissionDenied, self).__init__(msg)
 
 
 class MissingVariable(Exception):
     pass
+
+
+class Subject(object):
+    def __setattr__(self, key, value):
+        """
+        :param str key:
+        :param Permission value:
+        :return:
+        """
+        if not isinstance(value, Permission):
+            raise AttributeError("Attributes of subject must be perm.Permission")
+        value.name = key
+        super(Subject, self).__setattr__(key, value)
 
 
 class Permission(object):
@@ -16,50 +30,29 @@ class Permission(object):
         return '{}.{}.{}'.format(self.__module__, self.__class__.__name__, self.name)
 
 
-class Variable(set):
-    def grant(self, *permissions):
-        self.update(permissions)
-
-
-class RoleMeta(type):
-    def __new__(cls, name, bases, dct):
-        variables = '_perm_variables'
-        dct[variables] = {}
-        # collect names for permissions
-        for key, value in dct.iteritems():
-            if isinstance(value, Variable):
-                dct[variables][key] = value
-        return type.__new__(cls, name, bases, dct)
-
-
 class Role(object):
-    __metaclass__ = RoleMeta
+    def __init__(self):
+        self.variables = {}
+        self.permissions = set()
 
-    def __init__(self, variables):
-        for var in self._perm_variables:
-            assert var in variables, 'Variable {} not defined'.format(var)
-            setattr(self, var, variables[var])
-
-    def has_perm(self, permission, subject=None):
-        for name, var in self._perm_variables.items():
-            if permission in var:
-                test_sub = getattr(self, name)
-                if test_sub is None or subject == test_sub:
-                    return True
+    def has_perm(self, permission, subject=None, variable_values=None):
+        if permission in self.permissions:
+            return True
+        if variable_values:
+            for name, var in self.variables.items():
+                if permission in var:
+                    test_sub = variable_values[name]
+                    if test_sub is None or subject == test_sub:
+                        return True
         return False
 
+    def add_variable(self, var_name, *permissions):
+        if var_name in self.variables:
+            raise AttributeError('Variable {} already exists'.format(var_name))
+        self.variables[var_name] = permissions
 
-class SubjectMeta(type):
-    def __new__(cls, name, bases, dct):
-        # collect names for permissions
-        for key, value in dct.iteritems():
-            if isinstance(value, Permission):
-                value.name = key
-        return type.__new__(cls, name, bases, dct)
-
-
-class Subject(object):
-    __metaclass__ = SubjectMeta
+    def grant(self, *permissions):
+        self.permissions.update(permissions)
 
 
 class UserBase(object):
@@ -76,15 +69,14 @@ class UserBase(object):
             if test_perm == permission and (test_sub == subject or test_sub is None):
                 return True
 
-        print 'check roles', self.get('roles')
         for role, variables in self.get('roles', []):
-            if role(variables).has_perm(permission, subject):
+            if role.has_perm(permission, subject, variables):
                 return True
 
         return False
 
     def require_perm(self, permission, subject=None):
-        """check if user got permussion on subject otherwise raise
+        """check if user got permission on subject otherwise raise
 
         To customize what exception is raised set
         perm.PERMISSION_DENIED_EXCEPTION
@@ -107,25 +99,26 @@ class UserBase(object):
         :return:
         :rtype: None
         """
-        self.setdefault('perm', [])
-        if not [permission, subject] in self['perm']:
-            self['perm'].append([permission, subject])
+        perm = self.setdefault('perm', [])
+        if not [permission, subject] in perm:
+            perm.append([permission, subject])
 
     def add_role(self, role, **variables):
-        self.setdefault('roles', [])
+        """Add a new role to user
+
+        :param Role role:
+        :param variables:
+        """
+        roles = self.setdefault('roles', [])
         # check if all needed variabes are passed
-        for key in role._perm_variables:
+        for key in role.variables:
             if key not in variables:
                 raise MissingVariable(key)
-        if not [role, variables] in self['roles']:
-            self['roles'].append([role, variables])
+        if not [role, variables] in roles:
+            roles.append([role, variables])
 
 
 class User(UserBase, dict):
-    pass
-
-
-def grant(*permissions):
     pass
 
 

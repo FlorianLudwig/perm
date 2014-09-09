@@ -67,12 +67,31 @@ def test_add_role():
 
 
 def test_role_permissions():
+    """The project admin role grants write access to specific projects"""
     user = perm.User()
-    assert not user.has_perm(example.Project.read, 1)
+    assert not user.has_perm(example.Project.write, 1)
 
     user.add_role(example.Useless)
-    assert not user.has_perm(example.Project.read, 1)
+    assert not user.has_perm(example.Project.write, 1)
 
     user.add_role(example.ProjectAdmin, project=1)
-    assert user.has_perm(example.Project.read, 1)
+    assert user.has_perm(example.Project.write, 1)
+    assert not user.has_perm(example.Project.write, 2)
+
+
+def test_role_general_grant():
+    """The project admin role grants read access to ALL projects"""
+    user = perm.User()
+    assert not user.has_perm(example.Project.read, 1)
     assert not user.has_perm(example.Project.read, 2)
+
+    user.add_role(example.ProjectAdmin, project=1)
+    print user
+    assert user.has_perm(example.Project.read, 1)
+    assert user.has_perm(example.Project.read, 2)
+
+## WIP
+# def test_group():
+#     user = perm.User()
+#
+#     group = perm.Group()
