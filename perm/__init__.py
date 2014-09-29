@@ -1,3 +1,6 @@
+KNOWN_ROLES = {}
+
+
 class PermissionDenied(Exception):
     def __init__(self, permission, subject):
         msg = 'Permission {} for {} not granted'.format(permission, subject)
@@ -9,6 +12,12 @@ class MissingVariable(Exception):
 
 
 class Subject(object):
+    def __init__(self, *name):
+        object.__setattr__(self, '_name', '.'.join(name))
+
+    def __str__(self):
+        return self._name
+
     def __setattr__(self, key, value):
         """
         :param str key:
@@ -18,22 +27,29 @@ class Subject(object):
         if not isinstance(value, Permission):
             raise AttributeError("Attributes of subject must be perm.Permission")
         value.name = key
+        value.subject = self
         super(Subject, self).__setattr__(key, value)
 
 
 class Permission(object):
     def __init__(self):
         self.name = None
+        self.subject = None
 
     def __str__(self):
         assert self.name, 'Name must be set before use'
-        return '{}.{}.{}'.format(self.__module__, self.__class__.__name__, self.name)
+        return '{}.{}'.format(str(self.subject), self.name)
 
 
 class Role(object):
-    def __init__(self):
+    def __init__(self, *name):
         self.variables = {}
         self.permissions = set()
+        self.name = '.'.join(name)
+        KNOWN_ROLES[self.name] = self
+
+    def __str__(self):
+        return self.name
 
     def has_perm(self, permission, subject=None, variable_values=None):
         if permission in self.permissions:
@@ -66,11 +82,11 @@ class UserBase(object):
         :rtype: bool
         """
         for test_perm, test_sub in self.get('perm', []):
-            if test_perm == permission and (test_sub == subject or test_sub is None):
+            if test_perm == permission.name and (test_sub == subject or test_sub is None):
                 return True
 
         for role, variables in self.get('roles', []):
-            if role.has_perm(permission, subject, variables):
+            if KNOWN_ROLES[role].has_perm(permission, subject, variables):
                 return True
 
         return False
@@ -99,9 +115,10 @@ class UserBase(object):
         :return:
         :rtype: None
         """
-        perm = self.setdefault('perm', [])
-        if not [permission, subject] in perm:
-            perm.append([permission, subject])
+        store = self.setdefault('perm', [])
+        perm = (permission.name, subject)
+        if perm not in store:
+            store.append(perm)
 
     def add_role(self, role, **variables):
         """Add a new role to user
@@ -114,8 +131,10 @@ class UserBase(object):
         for key in role.variables:
             if key not in variables:
                 raise MissingVariable(key)
-        if not [role, variables] in roles:
-            roles.append([role, variables])
+
+        user_role = (str(role), variables)
+        if user_role not in roles:
+            roles.append(user_role)
 
 
 class User(UserBase, dict):

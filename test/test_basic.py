@@ -1,16 +1,23 @@
-import perm
+import imp
+import json
+
 import pytest
 
+import perm
+
 import example
+import example2
 
 
-def test_unique():
+def test_naming():
+    # names must be unique
     assert str(example.Project.write) != str(example.Project.read)
+    assert str(example.Project.write) != str(example2.Project.write)
 
 
 def test_constant():
     old = str(example.Project.write)
-    new = str(reload(example).Project.write)
+    new = str(imp.reload(example).Project.write)
     assert old == new
 
 
@@ -86,12 +93,16 @@ def test_role_general_grant():
     assert not user.has_perm(example.Project.read, 2)
 
     user.add_role(example.ProjectAdmin, project=1)
-    print user
     assert user.has_perm(example.Project.read, 1)
     assert user.has_perm(example.Project.read, 2)
 
-## WIP
-# def test_group():
-#     user = perm.User()
-#
-#     group = perm.Group()
+
+
+def test_jsonablity():
+    user = perm.User()
+    user.add_perm(example.Project.read, 1)
+
+    j = json.dumps(user)
+    data = json.loads(j)
+    user = perm.User(data)
+    assert user.has_perm(example.Project.read, 1)
