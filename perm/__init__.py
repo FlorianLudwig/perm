@@ -97,8 +97,7 @@ class UserBase(object):
         To customize what exception is raised set
         perm.PERMISSION_DENIED_EXCEPTION
 
-        :param permission:
-        :type permission: perm.Permission
+        :param Permission permission:
         :param subject: optional,
         :return:
         :rtype: None
@@ -109,8 +108,7 @@ class UserBase(object):
     def add_perm(self, permission, subject=None):
         """add permission to user
 
-        :param permission:
-        :type permission: perm.Permission
+        :param Permission permission:
         :param subject: optional,
         :return:
         :rtype: None
@@ -123,8 +121,8 @@ class UserBase(object):
     def add_role(self, role, **variables):
         """Add a new role to user
 
-        :param Role role:
-        :param variables:
+        :param Role role: Role to remove
+        :param variables: Role variables
         """
         roles = self.setdefault('roles', [])
         # check if all needed variabes are passed
@@ -132,9 +130,31 @@ class UserBase(object):
             if key not in variables:
                 raise MissingVariable(key)
 
-        user_role = (str(role), variables)
+        # use list instead of tuple so it can be json load/dump'ed
+        user_role = [str(role), variables]
         if user_role not in roles:
             roles.append(user_role)
+
+    def remove_role(self, role, **variables):
+        """Remove a role from a user
+
+        :param Role role: Role to remove
+        :param variables: Role variables
+        """
+        roles = self.setdefault('roles', [])
+        user_role = [str(role), variables]
+        if user_role in roles:
+            roles.remove(user_role)
+
+    def has_role(self, role, **variables):
+        """check if the user has the given role
+
+        :param Role role: Role to check
+        :param variables: Role variables
+        """
+        roles = self.get('roles', [])
+        user_role = [str(role), variables]
+        return user_role in roles
 
 
 class User(UserBase, dict):
