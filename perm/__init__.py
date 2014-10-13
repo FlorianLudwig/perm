@@ -123,6 +123,9 @@ class UserBase(object):
         if not self.has_perm(permission, subject):
             raise PERMISSION_DENIED_EXCEPTION(permission, subject)
 
+    def require_login(self):
+        return True
+
     def add_perm(self, permission, subject=None):
         """add permission to user
 
@@ -175,7 +178,16 @@ class UserBase(object):
         return user_role in roles
 
 
+class AnonymousBase(UserBase):
+    def require_login(self):
+        raise PERMISSION_DENIED_EXCEPTION('user_login', None)
+
+
 class User(UserBase, dict):
+    pass
+
+
+class Anonymous(AnonymousBase, dict):
     pass
 
 
