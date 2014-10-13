@@ -58,7 +58,7 @@ class Role(object):
             for name, var in self.variables.items():
                 if permission in var:
                     test_sub = variable_values[name]
-                    if test_sub is None or subject == test_sub:
+                    if match_subject(subject, test_sub):
                         return True
         return False
 
@@ -69,6 +69,24 @@ class Role(object):
 
     def grant(self, *permissions):
         self.permissions.update(permissions)
+
+
+def match_subject(subject, check):
+    """Check if `check` does match the `subject`
+
+    :param dict|object subject:
+    :param dict|object check:
+    :return bool:
+    """
+    if check is None:
+        return True
+    if isinstance(subject, dict) and isinstance(check, dict):
+        for key, value in check.items():
+            if key not in subject or subject[key] != value:
+                return False
+        return True
+    else:
+        return subject == check
 
 
 class UserBase(object):
@@ -82,7 +100,7 @@ class UserBase(object):
         :rtype: bool
         """
         for test_perm, test_sub in self.get('perm', []):
-            if test_perm == permission.name and (test_sub == subject or test_sub is None):
+            if test_perm == permission.name and match_subject(subject, test_sub):
                 return True
 
         for role, variables in self.get('roles', []):

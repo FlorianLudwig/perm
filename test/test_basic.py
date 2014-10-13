@@ -97,7 +97,6 @@ def test_role_general_grant():
     assert user.has_perm(example.Project.read, 2)
 
 
-
 def test_jsonablity():
     user = perm.User()
     user.add_perm(example.Project.read, 1)
@@ -106,3 +105,25 @@ def test_jsonablity():
     data = json.loads(j)
     user = perm.User(data)
     assert user.has_perm(example.Project.read, 1)
+
+
+def test_dict_subjects():
+    user = perm.User()
+    p1 = {'_id': 1, 'group': 0}
+    p2 = {'_id': 2, 'group': 0}
+    assert not user.has_perm(example.Project.read, p1)
+    assert not user.has_perm(example.Project.read, p2)
+
+    user.add_perm(example.Project.read, {'_id': 1})
+    assert user.has_perm(example.Project.read, p1)
+    assert not user.has_perm(example.Project.read, p2)
+
+    user = perm.User()
+    user.add_perm(example.Project.read, {'group': 0})
+    assert user.has_perm(example.Project.read, p1)
+    assert user.has_perm(example.Project.read, p2)
+
+    user = perm.User()
+    user.add_role(example.ProjectAdmin, project={'group': 0})
+    assert user.has_perm(example.Project.write, p1)
+    assert user.has_perm(example.Project.write, p2)
