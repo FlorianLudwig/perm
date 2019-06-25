@@ -1,0 +1,8 @@
+variables:
+  CI_REGISTRY_IMAGE: ''
+  PYTHON_MODULE: 'perm'
+
+
+include:
+  - https://gitlab.com/GreyRook/cde-test-py3/raw/9f0fbfc45c944380c77b6755c711e4ac42df1172/gitlab-ci.yml
+
