@@ -1,4 +1,4 @@
-import imp
+import importlib
 import json
 
 import pytest
@@ -17,7 +17,7 @@ def test_naming():
 
 def test_constant():
     old = str(example.Project.write)
-    new = str(imp.reload(example).Project.write)
+    new = str(importlib.reload(example).Project.write)
     assert old == new
 
 
